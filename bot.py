@@ -23,28 +23,50 @@ async def on_ready():
     logging.info('Current Discord.py Version: {} | Current Python Version: {}'.format(discord.__version__, platform.python_version()))
 
 
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-    channel = message.channel
-    bot.send_typing(channel)
+@bot.command(pass_context=True, help='')
+async def react(ctx, arg):
+    print(f'react called with [{arg}]')
 
-    channel_log = bot.logs_from(message.channel, limit=2)
+    log_messages = []
+    message = ctx.message
+    search = arg.strip(':')
+    
+    channel_log = bot.logs_from(message.channel, limit=15)
     async for msg in channel_log:
-        message_to_react = msg
-
-    search = message.content.strip(':')
+        log_messages.append(msg)
+    
     emoji_catalogue = bot.get_all_emojis()
-    # get first 5 matching emojis
-    emojis = [emoji for emoji in emoji_catalogue if search in emoji.name][:5]
+    # get first 3 matching emojis
+    emojis = [emoji for emoji in emoji_catalogue if search in emoji.name][:3]
 
+    if not emojis:
+        await bot.delete_message(message)
+        return
+
+    target = await get_target_message(message.author, log_messages)
+    
     for emoji in emojis:
-        await bot.add_reaction(message_to_react, emoji)
-    await bot.send_typing(channel)
-    await asyncio.sleep(5)
+        await bot.add_reaction(target, emoji)
+    await bot.send_typing(message.channel)
+    await asyncio.sleep(9)
     for emoji in emojis:
-        await bot.remove_reaction(message_to_react, emoji, bot.user)
+        await bot.remove_reaction(target, emoji, bot.user)
+
+    await bot.delete_message(message)
+    await bot.send_message(
+        ctx.message.author,
+        content="Done!"
+    )
+
+
+async def get_target_message(author, log_messages):
+    for msg in log_messages:
+        for reaction in msg.reactions:
+            if reaction.emoji == "🔖":
+                print(f'Removing {reaction.emoji} - added by {author.display_name} on "{msg.content}"')
+                await bot.remove_reaction(msg, reaction.emoji, author)
+                return msg
+    return log_messages[1] if len(log_messages) >= 2 else None  # Message above the triggering message
 
 
 def main():
