@@ -23,20 +23,28 @@ async def on_ready():
     logging.info('Current Discord.py Version: {} | Current Python Version: {}'.format(discord.__version__, platform.python_version()))
 
 
-@bot.command(pass_context=True, help='Count the messages in the channel.')
-async def count(ctx):
-    result = bot.logs_from(ctx.message.channel, limit=9999)
-    user_messages = {}
-    async for message in result:
-        name = message.author.name
-        new_user_messages = user_messages.get(name, []) + [message]
-        user_messages[name] = new_user_messages
-    response = ['Messages in {}'.format(ctx.message.channel)]
-    for author, messages in user_messages.items():
-        line = 'User {} has posted {} messages'.format(author, len(messages))
-        response.append(line)
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+    channel = message.channel
+    bot.send_typing(channel)
 
-    await bot.say('\n'.join(response))
+    channel_log = bot.logs_from(message.channel, limit=2)
+    async for msg in channel_log:
+        message_to_react = msg
+
+    search = message.content.strip(':')
+    emoji_catalogue = bot.get_all_emojis()
+    # get first 5 matching emojis
+    emojis = [emoji for emoji in emoji_catalogue if search in emoji.name][:5]
+
+    for emoji in emojis:
+        await bot.add_reaction(message_to_react, emoji)
+    await bot.send_typing(channel)
+    await asyncio.sleep(5)
+    for emoji in emojis:
+        await bot.remove_reaction(message_to_react, emoji, bot.user)
 
 
 def main():

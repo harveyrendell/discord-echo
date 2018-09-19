@@ -1,5 +1,6 @@
 [packages]
 "discord.py" = "*"
+peek = {path = "./../peek", editable = true}
 
 [requires]
 python_version = "3.6"
