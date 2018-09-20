@@ -15,12 +15,14 @@ bot = commands.Bot(
 
 extensions = []
 
+
 @bot.event
 async def on_ready():
     logging.info('Logged in as {}'.format(bot.user.name))
     logging.info('--------')
     logging.info('Pulse Bot Version: {}'.format(__version__))
-    logging.info('Current Discord.py Version: {} | Current Python Version: {}'.format(discord.__version__, platform.python_version()))
+    logging.info('Current Discord.py Version: {} | Current Python Version: {}'.format(
+        discord.__version__, platform.python_version()))
 
 
 @bot.command(pass_context=True, help='')
@@ -63,10 +65,15 @@ async def get_target_message(author, log_messages):
     for msg in log_messages:
         for reaction in msg.reactions:
             if reaction.emoji == "🔖":
-                print(f'Removing {reaction.emoji} - added by {author.display_name} on "{msg.content}"')
+                if author not in await bot.get_reaction_users(reaction):
+                    print("🔖 reaction found but not added by author")
+                    continue
+                print(
+                    f'Removing {reaction.emoji} - added by {author.display_name} on "{msg.content}"')
                 await bot.remove_reaction(msg, reaction.emoji, author)
                 return msg
-    return log_messages[1] if len(log_messages) >= 2 else None  # Message above the triggering message
+    # Message above the triggering message
+    return log_messages[1] if len(log_messages) >= 2 else None
 
 
 def main():
@@ -78,10 +85,4 @@ def main():
 
 
 if __name__ == "__main__":
-    for extension in extensions:
-        try:
-            bot.load_extension(extension)
-        except Exception as e:
-            logging.error('Failed to load extension {}'.format(extension))
-            logging.error(e)
     main()
