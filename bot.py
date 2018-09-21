@@ -13,8 +13,6 @@ bot = commands.Bot(
     command_prefix=commands.when_mentioned,
 )
 
-extensions = []
-
 
 @bot.event
 async def on_ready():
@@ -25,55 +23,59 @@ async def on_ready():
         discord.__version__, platform.python_version()))
 
 
-@bot.command(pass_context=True, help='')
+@bot.command(pass_context=True, help='React to the previous message, or to a message which has the 🔖 reaction')
 async def react(ctx, arg):
-    print(f'react called with [{arg}]')
+    channel_log = bot.logs_from(ctx.message.channel, limit=15)
+    log_messages = [msg async for msg in channel_log]
 
-    log_messages = []
-    message = ctx.message
-    search = arg.strip(':')
-    
-    channel_log = bot.logs_from(message.channel, limit=15)
-    async for msg in channel_log:
-        log_messages.append(msg)
-    
     emoji_catalogue = bot.get_all_emojis()
     # get first 3 matching emojis
-    emojis = [emoji for emoji in emoji_catalogue if search in emoji.name][:3]
+    emojis = [emoji for emoji in emoji_catalogue if arg.strip(':') in emoji.name][:3]
 
     if not emojis:
-        await bot.delete_message(message)
+        await bot.delete_message(ctx.message)
         return
 
-    target = await get_target_message(message.author, log_messages)
-    
-    for emoji in emojis:
-        await bot.add_reaction(target, emoji)
-    await bot.send_typing(message.channel)
-    await asyncio.sleep(9)
-    for emoji in emojis:
-        await bot.remove_reaction(target, emoji, bot.user)
-
-    await bot.delete_message(message)
-    await bot.send_message(
-        ctx.message.author,
-        content="Done!"
-    )
+    target = await get_target_message(log_messages, requester=ctx.message.author)
+    async with ReactionContext(client=bot, message=target, reactions=emojis):
+        await bot.wait_for_reaction(message=target, emoji=emojis, user=ctx.message.author, timeout=6)
+    await bot.delete_message(ctx.message)
 
 
-async def get_target_message(author, log_messages):
-    for msg in log_messages:
+async def get_target_message(message_log, requester):
+    for msg in message_log:
         for reaction in msg.reactions:
             if reaction.emoji == "🔖":
-                if author not in await bot.get_reaction_users(reaction):
+                if requester not in await bot.get_reaction_users(reaction):
                     print("🔖 reaction found but not added by author")
                     continue
-                print(
-                    f'Removing {reaction.emoji} - added by {author.display_name} on "{msg.content}"')
-                await bot.remove_reaction(msg, reaction.emoji, author)
+                print(f'Removing {reaction.emoji} - added by '
+                      f'{requester.display_name} on "{msg.content}"')
+                await bot.remove_reaction(msg, reaction.emoji, requester)
                 return msg
     # Message above the triggering message
-    return log_messages[1] if len(log_messages) >= 2 else None
+    return message_log[1] if len(message_log) >= 2 else None
+
+
+class ReactionContext:
+    '''Context manager for Discord message reactions.'''
+    
+    def __init__(self, client, message, reactions):
+        self.client = client
+        self.message = message
+        self.reactions = reactions
+
+    async def __aenter__(self):
+        for reaction in self.reactions:
+            await bot.add_reaction(self.message, reaction)
+
+    async def __aexit__(self, *args):
+        for reaction in self.reactions:
+            await bot.remove_reaction(
+                self.message,
+                reaction,
+                self.client.user)
+
 
 
 def main():
