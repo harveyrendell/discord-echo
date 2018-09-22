@@ -6,6 +6,4 @@ peek = {path = "./../peek", editable = true}
 python_version = "3.6"
 
 [dev-packages]
-black = "*"
-"autopep8" = "*"
 pylint = "*"
