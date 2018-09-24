@@ -91,7 +91,7 @@ async def react(ctx, arg):
         print(f'{str(rec.emoji)} - {rec.name} ({rec.score})')
 
         await message.author.send(content=f'''No match found for '{arg}'.
-        Were you looking for: {similarity_scores[0].emoji} ({similarity_scores[0].name}) instead?''')
+        Were you looking for {similarity_scores[0].emoji} ({similarity_scores[0].name}) instead?''')
 
         return await message.delete()
 
@@ -118,12 +118,12 @@ async def get_target_message(message_log, requester):
     for msg in message_log:
         for reaction in msg.reactions:
             if reaction.emoji == "🔖":
-                if requester not in await bot.get_reaction_users(reaction):
+                if requester not in await reaction.users().flatten():
                     print("🔖 reaction found but not added by author")
                     continue
                 print(f'Removing {reaction.emoji} - added by '
                       f'{requester.display_name} on "{msg.content}"')
-                await bot.remove_reaction(msg, reaction.emoji, requester)
+                await msg.remove_reaction(reaction.emoji, requester)
                 return msg
     # Message above the triggering message
     return message_log[1] if len(message_log) >= 2 else None
