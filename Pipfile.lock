@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "184b9f23a13628eec64dbedec935f18d515e7ae78557bb70531646e551605683"
+            "sha256": "32b556faf4b65d3642d3f8529436709cc0e5a78d36f3c79799b6645a0084b280"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -19,10 +19,6 @@
         "discord.py": {
             "git": "https://github.com/Rapptz/discord.py",
             "ref": "418048b98abef627f57f9e28e268bf3a8668648a"
-        },
-        "peek": {
-            "editable": true,
-            "path": "./../peek"
         }
     },
     "develop": {
@@ -82,6 +78,10 @@
                 "sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f"
             ],
             "version": "==0.6.1"
+        },
+        "peek": {
+            "editable": true,
+            "path": "./../peek"
         },
         "pylint": {
             "hashes": [

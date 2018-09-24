@@ -1,9 +1,9 @@
 [packages]
 "discord.py" = {git = "https://github.com/Rapptz/discord.py", ref = "rewrite"}
-peek = {path = "./../peek", editable = true}
 
 [requires]
 python_version = "3.6"
 
 [dev-packages]
 pylint = "*"
+peek = {path = "./../peek", editable = true}
