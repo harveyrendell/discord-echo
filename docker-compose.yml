@@ -1,0 +1,7 @@
+version: '3.7'
+
+services:
+  client:
+    build: .
+    restart: always
+    env_file: .env
