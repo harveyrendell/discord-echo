@@ -2,18 +2,22 @@ import asyncio
 import argparse
 import platform
 import logging
+import sys
 
 from difflib import SequenceMatcher
 from collections import namedtuple
-from textwrap import dedent
-
 
 import discord
 from discord.ext import commands
 
 __version__ = '0.0.1'
+
 SIMILARITY_THRESHOLD = 0.2
 
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler(sys.stdout)
+logger.addHandler(handler)
+logger.setLevel('INFO')
 
 bot = commands.Bot(
     description='',
@@ -30,10 +34,10 @@ def similar(a, b):
 
 @bot.event
 async def on_ready():
-    logging.info('Logged in as {}'.format(bot.user.name))
-    logging.info('--------')
-    logging.info('Pulse Bot Version: {}'.format(__version__))
-    logging.info('Current Discord.py Version: {} | Current Python Version: {}'.format(
+    logger.info('Logged in as {}'.format(bot.user.name))
+    logger.info('--------')
+    logger.info('Echo Bot Version: {}'.format(__version__))
+    logger.info('Current Discord.py Version: {} | Current Python Version: {}'.format(
         discord.__version__, platform.python_version()))
 
 
@@ -41,31 +45,37 @@ async def on_ready():
 async def search(ctx, arg):
     message = ctx.message
 
-    print(f'Command called: ', message.content)
+    logger.info(f'Command called: {str(message.content)}')
 
     similarity_scores = [Recommendation(emoji, emoji.name, similar(arg, emoji.name)) for emoji in bot.emojis]
     similarity_scores.sort(key=lambda x: x.score, reverse=True)
 
     search_results = [f'{printable_emoji(res.emoji)} *{res.name}*' for res in similarity_scores if res.score >= SIMILARITY_THRESHOLD]
-    best_match, other_results = search_results[0], search_results[1:]
-    other_results = '\n'.join(other_results)
-    print(search_results)
-    embed = discord.Embed(title="Search results")
-    embed.add_field(name='Best match', value=best_match)
-    embed.add_field(name='Other results', value=other_results, inline=False)
+    logger.info(f' | Search results: {search_results}')
+
+    if search_results:
+        best_match, other_results = search_results[0], search_results[1:]
+        other_results = '\n'.join(other_results)
+        embed = discord.Embed(title=f"Search results: {arg}")
+        embed.add_field(name='Best match', value=best_match)
+        embed.add_field(name='Other results', value=other_results, inline=False)
+    else:
+        embed = discord.Embed(
+            title=f"Search results: {arg}",
+            description="No Results Found...")
 
     await message.author.send(embed=embed)
 
     try:
         await message.delete()
-        print(f'Deleting message "{message.content}"')
+        logger.info(f' | Deleting message "{message.content}"')
         return
     except discord.errors.Forbidden as ex:
-        print('Not able to delete trigger message: ', ex)
+        logger.info(f' | Not able to delete trigger message: {str(ex)}')
 
 
 def printable_emoji(emoji):
-    print(repr(emoji), emoji.animated)
+    logger.info(f' | {repr(emoji)} {emoji.animated}')
     if emoji.animated:
         return f"<a:{emoji.name}:{emoji.id}>"
     return str(emoji)
@@ -76,7 +86,7 @@ async def react(ctx, arg):
     message = ctx.message
     channel = message.channel
 
-    print(f'Command called: ', message.content)
+    logger.info(f'Command called: {str(message.content)}')
 
     log_messages = await channel.history(limit=25).flatten()
 
@@ -86,9 +96,9 @@ async def react(ctx, arg):
     if not emojis:
         similarity_scores = [Recommendation(emoji, emoji.name, similar(arg, emoji.name)) for emoji in bot.emojis]
         similarity_scores.sort(key=lambda x: x.score, reverse=True)
-        print(f'No results found for {arg}')
+        logger.info(f' | No results found for {arg}')
         rec = similarity_scores[0]
-        print(f'{str(rec.emoji)} - {rec.name} ({rec.score})')
+        logger.info(f' | {str(rec.emoji)} - {rec.name} ({rec.score})')
 
         await message.author.send(content=f'''No match found for '{arg}'.
         Were you looking for {similarity_scores[0].emoji} ({similarity_scores[0].name}) instead?''')
@@ -97,7 +107,7 @@ async def react(ctx, arg):
 
     emoji_list = [str(emoji) for emoji in emojis]
 
-    print(f'Found {len(emojis)} emoji: {emoji_list} matching {arg}')
+    logger.info(f' | Found {len(emojis)} emoji: {emoji_list} matching {arg}')
     target = await get_target_message(log_messages, requester=message.author)
     async with ReactionContext(client=bot, message=target, reactions=emojis):
 
@@ -105,13 +115,11 @@ async def react(ctx, arg):
             return reaction.message.id == target.id and user == message.author and reaction.emoji in emojis
         
         await bot.wait_for('reaction_add', check=check, timeout=6)
-
     try:
-        await message.delete()
-        print(f'Deleting message "{message.content}"')
-        return
+        logger.info(f' | Deleting message "{message.content}"')
+        return await message.delete()
     except discord.errors.Forbidden as ex:
-        print('Not able to delete trigger message: ', ex)
+        logger.info(f' | Not able to delete trigger message: {str(ex)}')
 
 
 async def get_target_message(message_log, requester):
@@ -119,9 +127,9 @@ async def get_target_message(message_log, requester):
         for reaction in msg.reactions:
             if reaction.emoji == "🔖":
                 if requester not in await reaction.users().flatten():
-                    print("🔖 reaction found but not added by author")
+                    logger.info("🔖 reaction found but not added by author")
                     continue
-                print(f'Removing {reaction.emoji} - added by '
+                logger.info(f' | Removing {reaction.emoji} - added by '
                       f'{requester.display_name} on "{msg.content}"')
                 await msg.remove_reaction(reaction.emoji, requester)
                 return msg
