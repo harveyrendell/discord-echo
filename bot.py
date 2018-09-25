@@ -127,7 +127,7 @@ async def get_target_message(message_log, requester):
         for reaction in msg.reactions:
             if reaction.emoji == "🔖":
                 if requester not in await reaction.users().flatten():
-                    logger.info("🔖 reaction found but not added by author")
+                    logger.info(" | 🔖 reaction found but not added by author")
                     continue
                 logger.info(f' | Removing {reaction.emoji} - added by '
                       f'{requester.display_name} on "{msg.content}"')
