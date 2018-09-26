@@ -10,7 +10,7 @@ from collections import namedtuple
 import discord
 from discord.ext import commands
 
-__version__ = '0.0.1'
+__version__ = '0.1.0'
 
 SIMILARITY_THRESHOLD = 0.2
 
@@ -40,6 +40,15 @@ async def on_ready():
     logger.info('Current Discord.py Version: {} | Current Python Version: {}'.format(
         discord.__version__, platform.python_version()))
 
+@bot.command(pass_context=True, help='Show info about the bot')
+async def info(ctx, arg):
+    message = ctx.message
+
+    logger.info(f'Command called: {str(message.content)}')
+    
+    total_count = len(bot.emojis)
+    
+    await message.channel.send(content=f'Echo Bot version {__version__} tracking {total_count} emojis')
 
 @bot.command(pass_context=True, help='Search for reactions which match the provided search')
 async def search(ctx, arg):
