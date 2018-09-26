@@ -54,7 +54,7 @@ async def search(ctx, arg):
     logger.info(f' | Search results: {search_results}')
 
     if search_results:
-        best_match, other_results = search_results[0], search_results[1:]
+        best_match, other_results = search_results[0], search_results[1:7]
         other_results = '\n'.join(other_results)
         embed = discord.Embed(title=f"Search results: {arg}")
         embed.add_field(name='Best match', value=best_match)
