@@ -93,9 +93,12 @@ async def react(ctx, arg):
     log_messages = await channel.history(limit=25).flatten()
 
     # get first 3 matching emojis
-    emojis = [emoji for emoji in bot.emojis if arg.strip(':').casefold() in emoji.name.casefold()][:3]
+    matches = [Recommendation(emoji, emoji.name, similar(arg, emoji.name)) for emoji in bot.emojis
+                         if arg.strip(':').casefold() in emoji.name.casefold()]
+    matches.sort(key=lambda x: x.score, reverse=True)
 
-    if not emojis:
+
+    if not matches:
         similarity_scores = [Recommendation(emoji, emoji.name, similar(arg, emoji.name)) for emoji in bot.emojis]
         similarity_scores.sort(key=lambda x: x.score, reverse=True)
         logger.info(f' | No results found for {arg}')
@@ -107,15 +110,15 @@ async def react(ctx, arg):
 
         return await message.delete()
 
-    emoji_list = [str(emoji) for emoji in emojis]
+    emojis = [match.emoji for match in matches[:3]]
 
-    logger.info(f' | Found {len(emojis)} emoji: {emoji_list} matching {arg}')
+    logger.info(f' | Found {len(matches)} emoji matching {arg}')
     target = await get_target_message(log_messages, requester=message.author)
     async with ReactionContext(client=bot, message=target, reactions=emojis):
 
         def check(reaction, user):
             return reaction.message.id == target.id and user == message.author and reaction.emoji in emojis
-        
+
         await bot.wait_for('reaction_add', check=check, timeout=6)
     try:
         logger.info(f' | Deleting message "{message.content}"')
@@ -132,7 +135,7 @@ async def get_target_message(message_log, requester):
                     logger.info(" | 🔖 reaction found but not added by author")
                     continue
                 logger.info(f' | Removing {reaction.emoji} - added by '
-                      f'{requester.display_name} on "{msg.content}"')
+                            f'{requester.display_name} on "{msg.content}"')
                 await msg.remove_reaction(reaction.emoji, requester)
                 return msg
     # Message above the triggering message
