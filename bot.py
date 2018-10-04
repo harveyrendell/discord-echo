@@ -9,10 +9,11 @@ from collections import namedtuple
 
 import discord
 from discord.ext import commands
+from fuzzywuzzy import fuzz
 
 __version__ = '0.0.1'
 
-SIMILARITY_THRESHOLD = 0.2
+SIMILARITY_THRESHOLD = 0.5
 
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stdout)
@@ -29,7 +30,8 @@ Recommendation = namedtuple('Recommendation', 'emoji name score')
 
 
 def similar(a, b):
-    return SequenceMatcher(None, a, b).ratio()
+    # divide by 100 to get value in between 0 and 1
+    return fuzz.ratio(a, b)/100
 
 
 @bot.event
@@ -55,10 +57,10 @@ async def search(ctx, arg):
 
     if search_results:
         best_match, other_results = search_results[0], search_results[1:7]
-        other_results = '\n'.join(other_results)
         embed = discord.Embed(title=f"Search results: {arg}")
         embed.add_field(name='Best match', value=best_match)
-        embed.add_field(name='Other results', value=other_results, inline=False)
+        if other_results:
+            embed.add_field(name='Other results', value='\n'.join(other_results), inline=False)
     else:
         embed = discord.Embed(
             title=f"Search results: {arg}",
@@ -75,7 +77,7 @@ async def search(ctx, arg):
 
 
 def printable_emoji(emoji):
-    logger.info(f' | {repr(emoji)} {emoji.animated}')
+    logger.debug(f' | {repr(emoji)} {emoji.animated}')
     if emoji.animated:
         return f"<a:{emoji.name}:{emoji.id}>"
     return str(emoji)
@@ -91,7 +93,7 @@ async def react(ctx, arg):
     log_messages = await channel.history(limit=25).flatten()
 
     # get first 3 matching emojis
-    emojis = [emoji for emoji in bot.emojis if arg.strip(':') in emoji.name][:3]
+    emojis = [emoji for emoji in bot.emojis if arg.strip(':').casefold() in emoji.name.casefold()][:3]
 
     if not emojis:
         similarity_scores = [Recommendation(emoji, emoji.name, similar(arg, emoji.name)) for emoji in bot.emojis]
