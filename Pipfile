@@ -1,10 +1,10 @@
-[packages]
-"discord.py" = {git = "https://github.com/Rapptz/discord.py", ref = "rewrite"}
-fuzzywuzzy = "*"
-
-[requires]
-python_version = "3.6"
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
 
 [dev-packages]
-pylint = "*"
-peek = {path = "./../peek", editable = true}
+
+[packages]
+discord-py = "*"
+fuzzywuzzy = "*"

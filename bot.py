@@ -2,6 +2,7 @@ import asyncio
 import argparse
 import platform
 import logging
+import os
 import sys
 
 from difflib import SequenceMatcher
@@ -162,10 +163,10 @@ class ReactionContext:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-t', '--token', required=True, type=str)
+    parser.add_argument("-t", "--token", default=os.environ.get("TOKEN"), type=str)
     args = parser.parse_args()
+
     bot.run(args.token)
-    bot.close()
 
 
 if __name__ == "__main__":
