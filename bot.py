@@ -193,6 +193,7 @@ def main():
     args = parser.parse_args()
 
     bot.run(args.token)
+    bot.close()
 
 
 if __name__ == "__main__":
