@@ -1,4 +1,4 @@
-from python:3.6-slim
+from python:3.7-slim
 
 MAINTAINER hjrendell@gmail.com
 
