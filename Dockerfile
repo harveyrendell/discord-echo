@@ -11,4 +11,4 @@ RUN pip install pipenv
 
 RUN pipenv install --system --deploy
 
-CMD python bot.py -t $TOKEN
+CMD python echo/bot.py -t $TOKEN
