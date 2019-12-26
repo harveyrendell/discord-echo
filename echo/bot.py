@@ -134,7 +134,7 @@ async def react(ctx, arg):
     emojis = [match.emoji for match in matches[:3]]
 
     logger.info(f" | Found {len(matches)} emoji matching {arg}")
-    target = await get_target_message(log_messages, requester=message.author)
+    target = await get_target_message(log_messages, trigger_message=message, requester=message.author)
     async with ReactionContext(client=bot, message=target, reactions=emojis):
 
         def check(reaction, user):
@@ -152,8 +152,15 @@ async def react(ctx, arg):
         logger.info(f" | Not able to delete trigger message: {str(ex)}")
 
 
-async def get_target_message(message_log, requester):
-    for msg in message_log:
+async def get_target_message(message_log, trigger_message, requester):
+    response = None
+    for i, msg in enumerate(message_log):
+        logger.debug(f"Comparing '{msg.id}' to original '{trigger_message.id}'")
+        if msg.id == trigger_message.id:
+            logger.info(f"found trigger message {msg}")
+            # Message above the triggering message
+            response = message_log[i + 1]
+
         for reaction in msg.reactions:
             if reaction.emoji == "🔖":
                 if requester not in await reaction.users().flatten():
@@ -164,9 +171,8 @@ async def get_target_message(message_log, requester):
                     f'{requester.display_name} on "{msg.content}"'
                 )
                 await msg.remove_reaction(reaction.emoji, requester)
-                return msg
-    # Message above the triggering message
-    return message_log[1] if len(message_log) >= 2 else None
+                response = msg
+    return response
 
 
 class ReactionContext:
